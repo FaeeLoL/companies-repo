@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: companies-store-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwe123QWE
+      POSTGRES_DB: companies-store
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: companies-store-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: companies-store-kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "companies-store-zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://companies-store-kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while ! nc -z kafka 9092; do
+          echo "Waiting for Kafka to be ready..."
+          sleep 2
+        done;
+        echo "Kafka is ready. Creating topic...";
+        kafka-topics --create --bootstrap-server kafka:9092 --replication-factor 1 --partitions 1 --topic company_events;
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: companies-store-zookeeper:2181
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: companies-repo-app
+    ports:
+      - "8080:8080"
+    environment:
+      MIGRATE_BEFORE_START: "true"
+    volumes:
+      - ./configs:/app/configs
+    depends_on:
+      - postgres
+      - kafka-init
+
+
+volumes:
+  postgres_data:

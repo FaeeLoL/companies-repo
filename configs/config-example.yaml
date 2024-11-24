@@ -1,0 +1,18 @@
+server:
+  addr: "0.0.0.0:8080"
+  jwt:
+    secret_key: testsecret
+    trusted_issuers:
+        - "test-service"
+
+database:
+    host: "localhost"
+    port: 5432
+    user: "postgres"
+    password: "qwe123QWE"
+    dbname: "companies-store"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+  topic: "company_events"

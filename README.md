@@ -183,3 +183,6 @@ Execute linters using the following command:
 ```bash
 golangci-lint run -v --timeout 300s
 ```
+
+## Postman collection
+The postman collection might be used for testing the API.
